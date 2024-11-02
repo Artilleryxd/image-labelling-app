@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 
 const index = () => {
+  const [name, setName] = useState('');  // Added name state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('viewer'); // Default role is viewer
@@ -31,8 +32,9 @@ const index = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Save user info to Firestore
+      // Save user info to Firestore including name
       await setDoc(doc(db, 'users', user.uid), {
+        name: name,  // Save the name to Firestore
         email: user.email,
         role: role,
       });
@@ -59,6 +61,18 @@ const index = () => {
         <h2 className="text-2xl font-bold text-center mb-6">Register</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
         <form onSubmit={handleRegister}>
+          {/* Name Input */}
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2" htmlFor="name">Name</label>
+            <input
+              id="name"
+              type="text"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-500"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
           <div className="mb-4">
             <label className="block text-gray-700 mb-2" htmlFor="email">Email</label>
             <input
@@ -100,10 +114,10 @@ const index = () => {
           </button>
         </form>
         <p className="text-center mt-4">
-        Already have an account? 
-        <Link legacyBehavior href="/login">
+          Already have an account? 
+          <Link legacyBehavior href="/login">
             <a className="text-blue-500 hover:underline"> Login here.</a>
-        </Link>
+          </Link>
         </p>
       </div>
     </div>
