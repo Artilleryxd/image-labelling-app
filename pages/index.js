@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { auth, db } from '../lib/firebaseConfig'; // Import Firebase Auth and Firestore
-import { collection, query, where, getDocs, getDoc, doc, updateDoc } from 'firebase/firestore'; // Firestore imports
+import { collection, query, getDocs, getDoc, doc, updateDoc } from 'firebase/firestore'; // Firestore imports
 import Navbar from '@/components/navbar';
 
 const Index = () => {
   const [user, setUser] = useState(null);
   const [images, setImages] = useState([]);
   const router = useRouter();
+  const [selectedLabels, setSelectedLabels] = useState({}); // Store selected labels per image
+  const [completedImages, setCompletedImages] = useState({}); // Track images where Done was clicked
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -27,8 +29,8 @@ const Index = () => {
             return;
           }
 
-          // Fetch images with their labels
-          const imagesQuery = query(collection(db, 'images'), where('status', '==', 'unlabeled'));
+          // Fetch all images
+          const imagesQuery = query(collection(db, 'images'));
           const imagesSnapshot = await getDocs(imagesQuery);
           const fetchedImages = await Promise.all(imagesSnapshot.docs.map(async (doc) => {
             const imageData = doc.data();
@@ -36,7 +38,7 @@ const Index = () => {
               id: doc.id,
               url: `data:image/jpeg;base64,${imageData.imagesData}`, // Adjust the image format as needed
               ...imageData,
-              userLabels: imageData.userLabel ? [imageData.userLabel] : [] // Initialize userLabels from Firestore
+              userLabels: imageData.userLabels || [] // Initialize userLabels from Firestore
             };
           }));
 
@@ -51,48 +53,49 @@ const Index = () => {
     return () => unsubscribe(); // Cleanup subscription on unmount
   }, [router]);
 
-  const handleLabelClick = async (imageId, label) => {
+  const handleLabelClick = (imageId, label) => {
+    // Update selected label for the respective image
+    setSelectedLabels((prevLabels) => ({
+      ...prevLabels,
+      [imageId]: label, // Update only the clicked image's selected label
+    }));
+  };
+
+  const handleDoneClick = async (imageId) => {
     try {
-      // Find the current userLabels for the image
+      // Find the current image and push the selected label to userLabels
       const currentImage = images.find(image => image.id === imageId);
-      
-      // Check if the label is already selected
-      const isAlreadySelected = currentImage.userLabels.includes(label);
-  
-      // Determine new userLabels based on selection
-      let updatedLabels;
-  
-      if (!isAlreadySelected) {
-        // If the label is not already selected, append it to the userLabels
-        updatedLabels = [...currentImage.userLabels, label];
-      } else {
-        // If the label is already selected, we can choose to remove it or leave it as is
-        updatedLabels = currentImage.userLabels.filter(userLabel => userLabel !== label); // This will remove the label if clicked again
-      }
-  
-      // Update the image in Firestore with the new userLabels array
+      let userLabels = currentImage.userLabels;
+
+      userLabels.push(selectedLabels[imageId]);
+
+      // Update Firestore with the new label array
       await updateDoc(doc(db, 'images', imageId), {
-        userLabels: updatedLabels // Store the updated array of userLabels
+        userLabels: userLabels // Store the updated array with the selected label
       });
-  
-      // Update local state to reflect the selected label
+
+      // Update local state to reflect the userLabels
       setImages((prevImages) =>
         prevImages.map((image) => {
           if (image.id === imageId) {
             return {
               ...image,
-              userLabels: updatedLabels, // Update userLabels to the appended labels
+              userLabels: userLabels, // Update userLabels to include the new label
             };
           }
           return image;
         })
       );
+
+      // Mark the image as completed to disable buttons
+      setCompletedImages((prevCompleted) => ({
+        ...prevCompleted,
+        [imageId]: true, // Set flag for the image as completed
+      }));
     } catch (error) {
       console.error('Error updating labels in Firestore:', error);
     }
   };
-  
-  
 
   if (!user) {
     return <div>Loading...</div>; // If user not logged in yet
@@ -118,13 +121,25 @@ const Index = () => {
                 {image.labels.map((label, index) => (
                   <button
                     key={index}
-                    onClick={() => handleLabelClick(image.id, label)} // Directly use the label since it's an array
-                    className={`py-2 px-4 rounded hover:bg-blue-600 ${image.userLabels.includes(label) ? 'bg-green-500' : 'bg-blue-500 text-white'}`}
+                    onClick={() => handleLabelClick(image.id, label)} // Handle label click for the respective image
+                    className={`py-2 px-4 rounded hover:bg-blue-600 ${selectedLabels[image.id] === label ? 'bg-green-500' : 'bg-purple-500 text-white'}`} // Turn green if selected for that image
+                    disabled={completedImages[image.id]} // Disable if Done button clicked for this image
                   >
                     {label} {/* Display label name */}
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Done Button */}
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => handleDoneClick(image.id)} // Lock the image labeling
+                className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
+                disabled={!selectedLabels[image.id] || completedImages[image.id]} // Disable Done button if no label selected or Done was already clicked
+              >
+                Done
+              </button>
             </div>
 
             {/* Display the userLabels selected */}

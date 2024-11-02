@@ -69,7 +69,7 @@ const Index = () => {
             labels: labels.filter(label => label.trim() !== ''), // Use filtered labels for Firestore
             userLabels: [], // Initialize as an empty array, to be appended later
             uploaderId: user.uid,
-            status: 'unlabeled', // Set initial status or any other fields as needed
+            username:user.name,
           };
 
           // Generate a unique document ID for each image
