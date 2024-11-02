@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { auth, db } from '../lib/firebaseConfig'; // Firebase imports
 import { doc, getDoc } from 'firebase/firestore'; // Firestore
 
-const Navbar = () => {
+const UploaderNavbar = () => {
   const [wallet, setWallet] = useState(0); // State to store the wallet balance
   const [username, setUsername] = useState(''); // State for the user's username
   const [profilePicture, setProfilePicture] = useState(''); // State for the user's profile picture
@@ -45,11 +45,11 @@ const Navbar = () => {
     <nav className="bg-blue-600 p-4 rounded-lg shadow-md">
       <ul className="flex justify-between items-center">
         <li className="flex space-x-6">
-          <Link legacyBehavior href="/dashboard">
-            <a className="text-white hover:text-blue-300 transition duration-200">Label Images</a>
+          <Link legacyBehavior href="/">
+            <a className="text-white hover:text-blue-300 transition duration-200">Upload Image</a>
           </Link>
-          <Link legacyBehavior href="/previous-labels">
-            <a className="text-white hover:text-blue-300 transition duration-200">Previous Labels</a>
+          <Link legacyBehavior href="/view-uploads">
+            <a className="text-white hover:text-blue-300 transition duration-200">View Uploads</a>
           </Link>
         </li>
         <li className="ml-auto flex items-center space-x-4 relative"
@@ -64,7 +64,9 @@ const Navbar = () => {
               className="w-10 h-10 rounded-full border-2 border-white shadow-md cursor-pointer"
             />
           )}
-          <Link href="/viewerProfile" className="text-white hover:text-blue-300 transition duration-200">{username}</Link>
+          <Link href="/profile" className="text-white hover:text-blue-300 transition duration-200">
+            {username}
+          </Link>
 
           {/* Dropdown menu */}
           {dropdownOpen && (
@@ -90,4 +92,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default UploaderNavbar;

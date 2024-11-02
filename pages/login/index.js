@@ -34,7 +34,7 @@ const index = () => {
       
       // Redirect based on user role
       if (userData.role === 'uploader') {
-        router.push('/upload'); // Uploader route
+        router.push('/uploaderDash'); // Uploader route
       } else if (userData.role === 'viewer') {
         router.push('/'); // Viewer route
       }

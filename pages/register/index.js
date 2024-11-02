@@ -4,6 +4,7 @@ import { auth, db } from '../../lib/firebaseConfig';  // Firebase configuration
 import { setDoc, doc } from 'firebase/firestore';  // Firestore to save user role
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { getDoc } from 'firebase/firestore';
 
 const index = () => {
   const [name, setName] = useState('');  // Added name state
@@ -41,7 +42,7 @@ const index = () => {
 
       // Redirect after successful registration
       if (role === 'uploader') {
-        router.push('/upload'); // Redirect to uploader page
+        router.push('/uploaderDash'); // Redirect to uploader page
       } else {
         router.push('/'); // Redirect to viewer page
       }
