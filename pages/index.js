@@ -1,159 +1,39 @@
-import { useEffect, useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/router';
-import { auth, db } from '../lib/firebaseConfig'; // Import Firebase Auth and Firestore
-import { collection, query, getDocs, getDoc, doc, updateDoc } from 'firebase/firestore'; // Firestore imports
-import Navbar from '@/components/navbar';
 
-const Index = () => {
-  const [user, setUser] = useState(null);
-  const [images, setImages] = useState([]);
+function Index() {
   const router = useRouter();
-  const [selectedLabels, setSelectedLabels] = useState({}); // Store selected labels per image
-  const [completedImages, setCompletedImages] = useState({}); // Track images where Done was clicked
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        router.push('/login'); // If not logged in, redirect to login
-      } else {
-        setUser(user);
-
-        try {
-          // Fetch user data to check their role
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const userData = userDoc.data();
-
-          // Redirect if the user is an uploader
-          if (userData.role === 'uploader') {
-            router.push('/uploaderDash');
-            return;
-          }
-
-          // Fetch all images
-          const imagesQuery = query(collection(db, 'images'));
-          const imagesSnapshot = await getDocs(imagesQuery);
-          const fetchedImages = await Promise.all(imagesSnapshot.docs.map(async (doc) => {
-            const imageData = doc.data();
-            return {
-              id: doc.id,
-              url: `data:image/jpeg;base64,${imageData.imagesData}`, // Adjust the image format as needed
-              ...imageData,
-              userLabels: imageData.userLabels || [] // Initialize userLabels from Firestore
-            };
-          }));
-
-          // Wait for all image fetching to complete
-          setImages(fetchedImages);
-        } catch (error) {
-          console.error('Error fetching user data or images:', error);
-        }
-      }
-    });
-
-    return () => unsubscribe(); // Cleanup subscription on unmount
-  }, [router]);
-
-  const handleLabelClick = (imageId, label) => {
-    // Update selected label for the respective image
-    setSelectedLabels((prevLabels) => ({
-      ...prevLabels,
-      [imageId]: label, // Update only the clicked image's selected label
-    }));
+  const handleLogin = () => {
+    router.push('/login'); // Redirect to your login page
   };
 
-  const handleDoneClick = async (imageId) => {
-    try {
-      // Find the current image and push the selected label to userLabels
-      const currentImage = images.find(image => image.id === imageId);
-      let userLabels = currentImage.userLabels;
-
-      userLabels.push(selectedLabels[imageId]);
-
-      // Update Firestore with the new label array
-      await updateDoc(doc(db, 'images', imageId), {
-        userLabels: userLabels // Store the updated array with the selected label
-      });
-
-      // Update local state to reflect the userLabels
-      setImages((prevImages) =>
-        prevImages.map((image) => {
-          if (image.id === imageId) {
-            return {
-              ...image,
-              userLabels: userLabels, // Update userLabels to include the new label
-            };
-          }
-          return image;
-        })
-      );
-
-      // Mark the image as completed to disable buttons
-      setCompletedImages((prevCompleted) => ({
-        ...prevCompleted,
-        [imageId]: true, // Set flag for the image as completed
-      }));
-    } catch (error) {
-      console.error('Error updating labels in Firestore:', error);
-    }
+  const handleRegister = () => {
+    router.push('/register'); // Redirect to your registration page
   };
-
-  if (!user) {
-    return <div>Loading...</div>; // If user not logged in yet
-  }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <Navbar />
-
-      {/* Images and Labels Section */}
-      {images.length > 0 ? (
-        images.map((image) => (
-          <div key={image.id} className="bg-white p-6 rounded-lg shadow-lg mb-6 mt-2">
-            <h2 className="text-xl font-bold mb-4">Image ID: {image.id}</h2>
-            <img src={image.url} alt={`Image ${image.id}`} className="w-full h-60 object-cover rounded-lg mb-4" />
-            <p><strong>Uploader Name:</strong> {image.uploaderName || 'Unknown'}</p>
-            <p><strong>Image Information:</strong> {image.info || 'No additional information'}</p>
-
-            {/* Display associated labels as buttons */}
-            <div className="mt-4">
-              <h3 className="font-bold text-lg">Labels:</h3>
-              <div className="flex flex-wrap space-x-2 mt-2">
-                {image.labels.map((label, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleLabelClick(image.id, label)} // Handle label click for the respective image
-                    className={`py-2 px-4 rounded hover:bg-blue-600 ${selectedLabels[image.id] === label ? 'bg-green-500' : 'bg-purple-500 text-white'}`} // Turn green if selected for that image
-                    disabled={completedImages[image.id]} // Disable if Done button clicked for this image
-                  >
-                    {label} {/* Display label name */}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Done Button */}
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => handleDoneClick(image.id)} // Lock the image labeling
-                className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
-                disabled={!selectedLabels[image.id] || completedImages[image.id]} // Disable Done button if no label selected or Done was already clicked
-              >
-                Done
-              </button>
-            </div>
-
-            {/* Display the userLabels selected */}
-            <div className="mt-4">
-              <h4 className="font-bold text-md">Your Labels:</h4>
-              <p>{image.userLabels.length > 0 ? image.userLabels.join(', ') : 'No labels selected yet.'}</p>
-            </div>
-          </div>
-        ))
-      ) : (
-        <p>No images available for labeling at the moment.</p>
-      )}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <h1 className="text-4xl font-bold mb-4">Welcome to Your App</h1>
+      <p className="mb-8 text-lg text-center">
+        Discover a new way to manage your images and labels effortlessly.
+      </p>
+      <div className="flex space-x-4">
+        <button
+          onClick={handleLogin}
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-500 transition"
+        >
+          Login
+        </button>
+        <button
+          onClick={handleRegister}
+          className="bg-green-600 text-white px-6 py-2 rounded-lg shadow hover:bg-green-500 transition"
+        >
+          Register
+        </button>
+      </div>
     </div>
   );
-};
+}
 
 export default Index;

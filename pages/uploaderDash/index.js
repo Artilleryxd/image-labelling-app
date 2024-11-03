@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { auth, db } from '../../lib/firebaseConfig'; // Import Firebase Auth and Firestore
 import { doc, getDoc, setDoc } from 'firebase/firestore'; // Firestore imports
 import UploaderNavbar from '@/components/uploaderNavbar';
+import { serverTimestamp } from 'firebase/firestore'; // Import serverTimestamp
 
 const Index = () => {
   const router = useRouter();
@@ -54,39 +55,66 @@ const Index = () => {
     setImages([...images, { file: null }]); // Add a new image input, keeping existing labels
   };
 
-  const handleSubmit = async (e) => {
+
+const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const user = auth.currentUser; // Get the current user
-      const uploadedImageIds = []; // Store the IDs of uploaded images
-
-      for (const img of images) {
-        if (img.file) {
-          const base64Image = await convertFileToBase64(img.file); // Convert the file to base64
-
-          const imageData = {
-            imagesData: base64Image, // Base64 string of the image
-            labels: labels.filter(label => label.trim() !== ''), // Use filtered labels for Firestore
-            userLabels: [], // Initialize as an empty array, to be appended later
-            uploaderId: user.uid,
-            username:user.name,
-          };
-
-          // Generate a unique document ID for each image
-          const imageDocRef = doc(db, 'images', img.file.name); // Using the file name as an ID
-          await setDoc(imageDocRef, imageData); // Save image data to Firestore
-          uploadedImageIds.push(imageDocRef.id); // Add to uploaded image IDs
+        const user = auth.currentUser; // Get the current authenticated user
+        if (!user) {
+            throw new Error('User is not authenticated');
         }
-      }
 
-      console.log('Uploaded image IDs:', uploadedImageIds);
-      // Clear the form
-      setImages([{ file: null }]); // Reset images to initial state
-      setLabels(['']); // Reset labels to initial state
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (!userDocSnap.exists()) {
+            throw new Error('User document does not exist');
+        }
+
+        const userData = userDocSnap.data();
+        const username = userData.name;
+
+        const uploadedImageIds = [];
+        const uploadsData = [];
+
+        for (const img of images) {
+            if (img.file) {
+                const base64Image = await convertFileToBase64(img.file);
+
+                const imageData = {
+                    imagesData: base64Image,
+                    labels: labels.filter(label => label.trim() !== ''),
+                    userLabels: [],
+                    uploaderId: user.uid,
+                    username: username,
+                    createdAt: serverTimestamp() // Add createdAt timestamp
+                };
+
+                const imageDocRef = doc(db, 'images', img.file.name);
+                await setDoc(imageDocRef, imageData);
+                uploadedImageIds.push(imageDocRef.id);
+                
+                uploadsData.push({
+                    imageId: imageDocRef.id,
+                    labels: imageData.labels,
+                    createdAt: imageData.createdAt // Store timestamp
+                });
+            }
+        }
+
+        await setDoc(userDocRef, {
+            uploads: uploadsData
+        }, { merge: true });
+
+        console.log('Uploaded image IDs:', uploadedImageIds);
+        setImages([{ file: null }]);
+        setLabels(['']);
     } catch (error) {
-      console.error('Error uploading images:', error);
+        console.error('Error uploading images:', error);
     }
-  };
+};
+
+  
 
   const convertFileToBase64 = (file) => {
     return new Promise((resolve, reject) => {

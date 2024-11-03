@@ -45,10 +45,10 @@ const Navbar = () => {
     <nav className="bg-blue-600 p-4 rounded-lg shadow-md">
       <ul className="flex justify-between items-center">
         <li className="flex space-x-6">
-          <Link legacyBehavior href="/dashboard">
+          <Link legacyBehavior href="/">
             <a className="text-white hover:text-blue-300 transition duration-200">Label Images</a>
           </Link>
-          <Link legacyBehavior href="/previous-labels">
+          <Link legacyBehavior href="/previousLables">
             <a className="text-white hover:text-blue-300 transition duration-200">Previous Labels</a>
           </Link>
         </li>

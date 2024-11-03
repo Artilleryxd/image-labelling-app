@@ -48,7 +48,7 @@ const UploaderNavbar = () => {
           <Link legacyBehavior href="/">
             <a className="text-white hover:text-blue-300 transition duration-200">Upload Image</a>
           </Link>
-          <Link legacyBehavior href="/view-uploads">
+          <Link legacyBehavior href="/previousUploads">
             <a className="text-white hover:text-blue-300 transition duration-200">View Uploads</a>
           </Link>
         </li>
