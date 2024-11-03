@@ -5,17 +5,25 @@ import { doc, getDoc } from 'firebase/firestore'; // Firestore to get user role
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 
-const index = () => {
+const Index = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
-        // If user is logged in, redirect them to the home page
-        router.push('/');
+        // User is logged in, fetch their role
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userData = userDoc.data();
+
+        // Redirect based on user role
+        if (userData.role === 'uploader') {
+          router.push('/uploaderDash'); // Redirect to uploader dashboard
+        } else if (userData.role === 'viewer') {
+          router.push('/viewerDash'); // Redirect to viewer dashboard
+        }
       }
     });
 
@@ -36,7 +44,7 @@ const index = () => {
       if (userData.role === 'uploader') {
         router.push('/uploaderDash'); // Uploader route
       } else if (userData.role === 'viewer') {
-        router.push('/'); // Viewer route
+        router.push('/viewerDash'); // Viewer route
       }
     } catch (err) {
       setError('Failed to login. Please check your credentials.');
@@ -83,14 +91,14 @@ const index = () => {
           </button>
         </form>
         <p className="text-center mt-4">
-            Don't have an account? 
-        <Link legacyBehavior href="/register">
-        <a className="text-blue-500 hover:underline transition-all ease-linear"> Register here.</a>
-        </Link>
+          Don't have an account? 
+          <Link legacyBehavior href="/register">
+            <a className="text-blue-500 hover:underline transition-all ease-linear"> Register here.</a>
+          </Link>
         </p>
       </div>
     </div>
   );
 };
 
-export default index;
+export default Index;

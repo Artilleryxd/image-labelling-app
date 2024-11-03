@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { db } from '../../lib/firebaseConfig'; // Your Firebase configuration
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { auth } from '../../lib/firebaseConfig'; // Firebase auth
 import { useRouter } from 'next/router';
+import UploaderNavbar from '@/components/uploaderNavbar';
 
 const PreviousUploads = () => {
-    const [uploads, setUploads] = useState([]);
+    const [uploadsData, setUploadsData] = useState([]); // State variable to store uploads data
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [userRole, setUserRole] = useState('');
@@ -32,12 +33,24 @@ const PreviousUploads = () => {
                     
                     if (userData.role === 'uploader') {
                         // Fetch uploads for the current user
-                        const uploadsRef = collection(db, 'uploads');
-                        const q = query(uploadsRef, where('userId', '==', user.uid));
-                        const querySnapshot = await getDocs(q);
-                        const uploadsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        const uploadsData = userData.uploads || []; // Assuming uploads is an array in the user document
                         console.log('Uploads Data:', uploadsData); // Check the uploaded data
-                        setUploads(uploadsData);
+
+                        // Query images collection to get userLabels and imageData for uploads with the same uploader ID
+                        const imagesQuery = query(
+                            collection(db, 'images'),
+                            where('uploaderId', '==', user.uid) // Assuming 'uploaderId' is the field in the images collection
+                        );
+
+                        const imagesSnapshot = await getDocs(imagesQuery);
+                        const imagesData = imagesSnapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data(), // Fetch both userLabels and imageData
+                        }));
+
+                        // Set uploadsData to include both userLabels and imageData
+                        setUploadsData(imagesData);
+                        console.log(uploadsData)
                     } else {
                         // Redirect non-uploader users
                         router.push('/'); // Redirect to homepage or another page
@@ -59,18 +72,28 @@ const PreviousUploads = () => {
     if (loading) return <p>Loading...</p>;
     if (error) return <p className="text-red-500">{error}</p>;
 
+    
+
     return (
         <div className="container mx-auto p-4">
+            <UploaderNavbar/>
+
             <h1 className="text-2xl font-bold mb-4">Previous Uploads</h1>
-            {uploads.length === 0 ? (
+            {uploadsData.length === 0 ? (
                 <p>No uploads found.</p>
             ) : (
                 <ul className="space-y-4">
-                    {uploads.map(upload => (
+                    {uploadsData.map((upload) => (
                         <li key={upload.id} className="border p-4 rounded shadow">
-                            <img src={upload.imageUrl} alt="Upload" className="w-full h-auto mb-2" />
-                            <p><strong>Labels:</strong> {upload.labels.join(', ')}</p>
-                            <p><strong>Uploaded on:</strong> {new Date(upload.createdAt).toLocaleDateString()}</p>
+                            <img 
+                                src={`data:image/jpeg;base64,${upload.imagesData}`} 
+                                alt="Upload" 
+                                className="w-full h-auto mb-2" 
+                            />
+                            {/* Display the userLabels */}
+                            <p><strong>Labels:</strong> {upload.userLabels?.join(', ')}</p>
+                            {/* Optionally, display the image metadata (if any other details are needed) */}
+                            <p><strong>Image ID:</strong> {upload.id}</p>
                         </li>
                     ))}
                 </ul>

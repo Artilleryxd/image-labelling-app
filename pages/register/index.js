@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '../../lib/firebaseConfig';  // Firebase configuration
-import { setDoc, doc } from 'firebase/firestore';  // Firestore to save user role
+import { auth, db } from '../../lib/firebaseConfig'; // Firebase configuration
+import { setDoc, doc, getDoc } from 'firebase/firestore'; // Firestore to save user role
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 
@@ -15,10 +15,18 @@ const Index = () => {
     const router = useRouter();
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
-                // If user is logged in, redirect them to the home page
-                router.push('/');
+                // User is logged in, fetch their role
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                const userData = userDoc.data();
+
+                // Redirect based on user role
+                if (userData.role === 'uploader') {
+                    router.push('/uploaderDash'); // Redirect to uploader dashboard
+                } else if (userData.role === 'viewer') {
+                    router.push('/viewerDash'); // Redirect to viewer dashboard
+                }
             }
         });
 
@@ -53,7 +61,7 @@ const Index = () => {
             if (role === 'uploader') {
                 router.push('/uploaderDash'); // Redirect to uploader page
             } else {
-                router.push('/'); // Redirect to viewer page
+                router.push('/viewerDash'); // Redirect to viewer dashboard for viewers
             }
         } catch (err) {
             // Check for email-already-in-use error

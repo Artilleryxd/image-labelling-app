@@ -45,7 +45,7 @@ const UploaderNavbar = () => {
     <nav className="bg-blue-600 p-4 rounded-lg shadow-md">
       <ul className="flex justify-between items-center">
         <li className="flex space-x-6">
-          <Link legacyBehavior href="/">
+          <Link legacyBehavior href="/uploaderDash">
             <a className="text-white hover:text-blue-300 transition duration-200">Upload Image</a>
           </Link>
           <Link legacyBehavior href="/previousUploads">

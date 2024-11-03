@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { auth, db } from '../../lib/firebaseConfig'; // Import Firebase Auth and Firestore
-import { doc, getDoc, setDoc } from 'firebase/firestore'; // Firestore imports
+import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore'; // Firestore imports
 import UploaderNavbar from '@/components/uploaderNavbar';
-import { serverTimestamp } from 'firebase/firestore'; // Import serverTimestamp
 
 const Index = () => {
   const router = useRouter();
@@ -52,69 +51,83 @@ const Index = () => {
   };
 
   const addImage = () => {
-    setImages([...images, { file: null }]); // Add a new image input, keeping existing labels
+    setImages([...images, { file: null }]); // Add a new image input
   };
 
-
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-        const user = auth.currentUser; // Get the current authenticated user
-        if (!user) {
-            throw new Error('User is not authenticated');
+      const user = auth.currentUser; // Get the current authenticated user
+      if (!user) {
+        throw new Error('User is not authenticated');
+      }
+
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        throw new Error('User document does not exist');
+      }
+
+      const userData = userDocSnap.data();
+      const username = userData.name;
+
+      const uploadsData = [];
+      const uploadedImageIds = [];
+
+      for (const img of images) {
+        if (img.file) {
+          const base64Image = await convertFileToBase64(img.file);
+
+          const imageData = {
+            imagesData: base64Image,
+            labels: labels.filter(label => label.trim() !== ''),
+            userLabels: [],
+            labelers: [],
+            uploaderId: user.uid,
+            username: username,
+          };
+
+          const imageDocRef = doc(db, 'images', img.file.name);
+          const imageDocSnap = await getDoc(imageDocRef);
+
+          if (imageDocSnap.exists()) {
+            // Update existing image document
+            await updateDoc(imageDocRef, {
+              imagesData: base64Image,
+              labels: arrayUnion(...imageData.labels), // Add labels without duplicates
+              userLabels: imageData.userLabels,
+              labelers: imageData.labelers,
+              uploaderId: user.uid,
+              username: username,
+            });
+          } else {
+            // Create new image document
+            await setDoc(imageDocRef, imageData); 
+          }
+
+          uploadedImageIds.push(imageDocRef.id);
+          uploadsData.push({
+            imageId: imageDocRef.id,
+            imageData: imageData.imagesData,
+            labels: imageData.labels,
+            userLabels: imageData.userLabels,
+          });
         }
+      }
 
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+      // Update the user's uploads array by merging new uploads with existing uploads
+      await updateDoc(userDocRef, {
+        uploads: arrayUnion(...uploadsData) // Use arrayUnion to merge uploads
+      });
 
-        if (!userDocSnap.exists()) {
-            throw new Error('User document does not exist');
-        }
-
-        const userData = userDocSnap.data();
-        const username = userData.name;
-
-        const uploadedImageIds = [];
-        const uploadsData = [];
-
-        for (const img of images) {
-            if (img.file) {
-                const base64Image = await convertFileToBase64(img.file);
-
-                const imageData = {
-                    imagesData: base64Image,
-                    labels: labels.filter(label => label.trim() !== ''),
-                    userLabels: [],
-                    uploaderId: user.uid,
-                    username: username,
-                    createdAt: serverTimestamp() // Add createdAt timestamp
-                };
-
-                const imageDocRef = doc(db, 'images', img.file.name);
-                await setDoc(imageDocRef, imageData);
-                uploadedImageIds.push(imageDocRef.id);
-                
-                uploadsData.push({
-                    imageId: imageDocRef.id,
-                    labels: imageData.labels,
-                    createdAt: imageData.createdAt // Store timestamp
-                });
-            }
-        }
-
-        await setDoc(userDocRef, {
-            uploads: uploadsData
-        }, { merge: true });
-
-        console.log('Uploaded image IDs:', uploadedImageIds);
-        setImages([{ file: null }]);
-        setLabels(['']);
+      console.log('Uploaded image IDs:', uploadedImageIds);
+      setImages([{ file: null }]); // Reset images state
+      setLabels(['']); // Reset labels state
     } catch (error) {
-        console.error('Error uploading images:', error);
+      console.error('Error uploading images:', error);
     }
-};
-
-  
+  };
 
   const convertFileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
