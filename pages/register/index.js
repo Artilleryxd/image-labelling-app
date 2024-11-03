@@ -39,24 +39,25 @@ const Index = () => {
             // Create the user with email and password
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-
+    
             // Prepare user data
             const userData = {
                 name: name,  // Save the name to Firestore
                 email: user.email,
                 role: role,
+                wallet: {balance : 100},  // Initialize wallet with hardcoded $100 balance
             };
-
+    
             // Add empty arrays based on user role
             if (role === 'viewer') {
                 userData.previousLabels = []; // Initialize previousLabels for viewers
             } else if (role === 'uploader') {
                 userData.previousUploads = []; // Initialize previousUploads for uploaders
             }
-
+    
             // Save user info to Firestore
             await setDoc(doc(db, 'users', user.uid), userData);
-
+    
             // Redirect after successful registration
             if (role === 'uploader') {
                 router.push('/uploaderDash'); // Redirect to uploader page
@@ -72,6 +73,7 @@ const Index = () => {
             }
         }
     };
+    
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">

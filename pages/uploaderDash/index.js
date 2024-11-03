@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { auth, db } from '../../lib/firebaseConfig'; // Import Firebase Auth and Firestore
+import { auth, db } from '../../lib/firebaseConfig'; // Firebase Auth and Firestore
 import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore'; // Firestore imports
 import UploaderNavbar from '@/components/uploaderNavbar';
 
@@ -8,6 +8,8 @@ const Index = () => {
   const router = useRouter();
   const [images, setImages] = useState([{ file: null }]); // State for images
   const [labels, setLabels] = useState(['']); // Global state for labels
+  const [wallet, setWallet] = useState({ balance: 0 }); // Track user wallet balance
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -15,15 +17,18 @@ const Index = () => {
         router.push('/login'); // If not logged in, redirect to login
       } else {
         try {
-          // Fetch user data to check their role
+          // Fetch user data, including wallet balance
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           const userData = userDoc.data();
 
-          // Redirect if the user is a viewer
           if (userData.role === 'viewer') {
             router.push('/'); // Redirect viewer to home page
             return;
           }
+
+          // Set wallet balance
+          setWallet(userData.wallet); // Updated to directly set wallet object
+
         } catch (error) {
           console.error('Error fetching user data:', error);
         }
@@ -56,6 +61,7 @@ const Index = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(''); // Reset error message
     try {
       const user = auth.currentUser; // Get the current authenticated user
       if (!user) {
@@ -71,6 +77,18 @@ const Index = () => {
 
       const userData = userDocSnap.data();
       const username = userData.name;
+      const currentWallet = userData.wallet.balance || 0; // Get current wallet balance
+
+      // Calculate total cost
+      const uploadCost = images.length * 1; // $1 per image
+      const labelCost = labels.filter(label => label.trim() !== '').length * 0.1; // $0.10 per label
+      const totalCost = uploadCost + labelCost;
+
+      // Check if user has enough funds
+      if (currentWallet < totalCost) {
+        setError(`You do not have enough balance. Required: $${totalCost.toFixed(2)}, Available: $${currentWallet.toFixed(2)}`);
+        return;
+      }
 
       const uploadsData = [];
       const uploadedImageIds = [];
@@ -116,16 +134,19 @@ const Index = () => {
         }
       }
 
-      // Update the user's uploads array by merging new uploads with existing uploads
+      // Update the user's uploads array and wallet balance
       await updateDoc(userDocRef, {
-        uploads: arrayUnion(...uploadsData) // Use arrayUnion to merge uploads
+        uploads: arrayUnion(...uploadsData), // Merge uploads
+        'wallet.balance': currentWallet - totalCost // Deduct the total cost from wallet balance
       });
 
       console.log('Uploaded image IDs:', uploadedImageIds);
       setImages([{ file: null }]); // Reset images state
       setLabels(['']); // Reset labels state
+      setWallet(prev => ({ ...prev, balance: currentWallet - totalCost })); // Update wallet balance locally
     } catch (error) {
       console.error('Error uploading images:', error);
+      setError(error.message); // Update the error message to display
     }
   };
 
@@ -139,17 +160,25 @@ const Index = () => {
   };
 
   return (
-    <div>
+    <div className="bg-gray-50 min-h-screen p-3">
       <UploaderNavbar />
-      <form onSubmit={handleSubmit} className="p-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-xl font-bold mb-4">Upload Images</h2>
+      <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md mt-10">
+        <h2 className="text-2xl font-bold mb-4 text-center">Upload Images</h2>
+        {error && <p className="text-red-500 mb-4 text-center">{error}</p>} {/* Error Message */}
+        
+        <div className="flex justify-center mb-6">
+          <div className="bg-green-100 text-green-700 font-semibold px-4 py-2 rounded-lg shadow-md">
+            Wallet Balance: ${wallet.balance.toFixed(2)} {/* Display Wallet Balance */}
+          </div>
+        </div>
+
         {images.map((image, index) => (
           <div key={index} className="mb-4">
             <input
               type="file"
               accept="image/*"
               onChange={(e) => handleImageChange(e, index)}
-              className="mb-2"
+              className="border border-gray-300 rounded p-2 mb-2 w-full"
             />
           </div>
         ))}
@@ -164,12 +193,12 @@ const Index = () => {
             />
             {labelIndex === labels.length - 1 && (
               <button
-                type="button"
-                onClick={addLabel}
-                className="bg-blue-500 text-white px-2 rounded"
-              >
-                Add Label
-              </button>
+              type="button"
+              onClick={addLabel}
+              className="bg-blue-500 text-white w-44 px-4 py-2 text-lg rounded"
+            >
+              Add Label
+            </button>
             )}
           </div>
         ))}
@@ -182,11 +211,12 @@ const Index = () => {
         </button>
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          onClick={handleSubmit}
+          className="bg-blue-600 text-white px-4 py-2 rounded w-full"
         >
           Upload Images
         </button>
-      </form>
+      </div>
     </div>
   );
 };

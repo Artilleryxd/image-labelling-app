@@ -50,7 +50,7 @@ const PreviousUploads = () => {
 
                         // Set uploadsData to include both userLabels and imageData
                         setUploadsData(imagesData);
-                        console.log(uploadsData)
+                        console.log(uploadsData);
                     } else {
                         // Redirect non-uploader users
                         router.push('/'); // Redirect to homepage or another page
@@ -72,31 +72,31 @@ const PreviousUploads = () => {
     if (loading) return <p>Loading...</p>;
     if (error) return <p className="text-red-500">{error}</p>;
 
-    
-
     return (
         <div className="container mx-auto p-4">
             <UploaderNavbar/>
 
-            <h1 className="text-2xl font-bold mb-4">Previous Uploads</h1>
+            <h1 className="text-2xl font-bold mb-4 text-center my-2">Previous Uploads</h1>
             {uploadsData.length === 0 ? (
-                <p>No uploads found.</p>
+                <p className='text-center'>No uploads found.</p>
             ) : (
-                <ul className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-center">
                     {uploadsData.map((upload) => (
-                        <li key={upload.id} className="border p-4 rounded shadow">
-                            <img 
-                                src={`data:image/jpeg;base64,${upload.imagesData}`} 
-                                alt="Upload" 
-                                className="w-full h-auto mb-2" 
-                            />
+                        <div key={upload.id} className="border p-2 rounded shadow bg-white flex flex-col items-center">
+                            <div className="aspect-w-1 aspect-h-1 w-full">
+                                <img 
+                                    src={`data:image/jpeg;base64,${upload.imagesData}`} 
+                                    alt="Upload" 
+                                    className="object-cover w-full h-full rounded" 
+                                />
+                            </div>
                             {/* Display the userLabels */}
-                            <p><strong>Labels:</strong> {upload.userLabels?.join(', ')}</p>
+                            <p className="mt-2 text-center"><strong>Labels:</strong> {upload.userLabels?.join(', ')}</p>
                             {/* Optionally, display the image metadata (if any other details are needed) */}
-                            <p><strong>Image ID:</strong> {upload.id}</p>
-                        </li>
+                            <p className="text-center"><strong>Image ID:</strong> {upload.id}</p>
+                        </div>
                     ))}
-                </ul>
+                </div>
             )}
         </div>
     );

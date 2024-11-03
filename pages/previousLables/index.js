@@ -26,19 +26,27 @@ const PreviousLabels = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gray-100 p-6">
+        <div className="min-h-screen bg-gray-50 p-6">
             <Navbar />
-            <h1 className="text-2xl font-bold mb-4">Previous Labels</h1>
+            <h1 className="text-3xl font-bold mb-6 text-center mt-2">Your Labels</h1>
             {userLabels.length > 0 ? (
-                userLabels.map((labelData, index) => (
-                    <div key={index} className="bg-white p-6 rounded-lg shadow-lg mb-6 mt-2">
-                        <h2 className="text-xl font-bold mb-4">Image ID: {labelData.imageId}</h2>
-                        <img src={`data:image/jpeg;base64,${labelData.imageData}`} alt={`Labeled Image ${labelData.imageId}`} className="w-full h-60 object-cover rounded-lg mb-4" />
-                        <p><strong>Your Label:</strong> {labelData.label}</p>
-                    </div>
-                ))
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-center">
+                    {userLabels.map((labelData, index) => (
+                        <div key={index} className="bg-white p-4 rounded-lg shadow-lg mb-6 mt-2 flex flex-col">
+                            <h2 className="text-xl font-bold mb-2">Image ID: {labelData.imageId}</h2>
+                            <div className="aspect-w-1 aspect-h-1 mb-4">
+                                <img 
+                                    src={`data:image/jpeg;base64,${labelData.imageData}`} 
+                                    alt={`Labeled Image ${labelData.imageId}`} 
+                                    className="object-cover w-full h-full rounded-lg" 
+                                />
+                            </div>
+                            <p className="text-lg"><strong>Your Label:</strong> {labelData.label}</p>
+                        </div>
+                    ))}
+                </div>
             ) : (
-                <p>No previous labels found.</p>
+                <p className="text-center text-lg text-gray-600">No labels found.</p>
             )}
         </div>
     );

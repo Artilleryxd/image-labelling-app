@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { auth, db } from '../lib/firebaseConfig'; // Firebase imports
-import { doc, getDoc } from 'firebase/firestore'; // Firestore
+import { doc, getDoc } from 'firebase/firestore'; // Firestore imports
 
 const Navbar = () => {
-  const [wallet, setWallet] = useState(0); // State to store the wallet balance
+  const [wallet, setWallet] = useState({ balance: 0 }); // State to store the wallet balance as an object
   const [username, setUsername] = useState(''); // State for the user's username
   const [profilePicture, setProfilePicture] = useState(''); // State for the user's profile picture
   const [dropdownOpen, setDropdownOpen] = useState(false); // State to manage dropdown visibility
@@ -19,10 +19,15 @@ const Navbar = () => {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           const userData = userDoc.data();
 
-          // Set the wallet balance and user info if it exists
-          setWallet(userData.wallet || 0);
-          setUsername(userData.name || ''); // Assuming name is stored in Firestore
-          setProfilePicture(userData.profilePicture || ''); // Assuming profilePicture is stored in Firestore
+          // Check if wallet is an object and extract balance
+          if (userData.wallet && typeof userData.wallet === 'object') {
+            setWallet(userData.wallet); // Set the wallet object directly
+          } else {
+            setWallet({ balance: userData.wallet || 0 }); // If wallet is a number, wrap it in an object
+          }
+
+          setUsername(userData.name || '');
+          setProfilePicture(userData.profilePicture || '');
         } catch (error) {
           console.error('Error fetching user data:', error);
         }
@@ -72,7 +77,7 @@ const Navbar = () => {
               <div className="p-4 text-gray-700">
                 <Link legacyBehavior href="/wallet">
                   <a className="block hover:bg-gray-100 transition duration-200 p-2 rounded">
-                    Wallet <span className="font-bold">₹{wallet}</span>
+                    Wallet <span className="font-bold">₹{wallet.balance.toFixed(2)}</span> {/* Use wallet balance */}
                   </a>
                 </Link>
                 <button
