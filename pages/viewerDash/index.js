@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { auth, db } from '../../lib/firebaseConfig'; // Import Firebase Auth and Firestore
-import { collection, query, getDocs, getDoc, doc, updateDoc } from 'firebase/firestore'; // Firestore imports
+import { collection, query, getDocs, getDoc, doc, updateDoc, arrayUnion } from 'firebase/firestore'; // Firestore imports
 import Navbar from '@/components/navbar';
-import { arrayUnion } from 'firebase/firestore';
 
 const Index = () => {
   const [user, setUser] = useState(null);
@@ -15,48 +14,51 @@ const Index = () => {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
-        router.push('/login'); // If not logged in, redirect to login
+        router.push('/login'); // Redirect if not logged in
       } else {
         setUser(user);
-
+  
         try {
-          // Fetch user data to check their role
+          // Fetch the user's data to get their role and username
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           const userData = userDoc.data();
-
+          const username = userData.name;
+  
           // Redirect if the user is an uploader
           if (userData.role === 'uploader') {
             router.push('/uploaderDash');
             return;
           }
-
-          // Fetch all images
+  
+          // Fetch all images from Firestore
           const imagesQuery = query(collection(db, 'images'));
           const imagesSnapshot = await getDocs(imagesQuery);
-          const fetchedImages = await Promise.all(imagesSnapshot.docs.map(async (doc) => {
-            const imageData = doc.data();
-            return {
-              id: doc.id,
-              url: `data:image/jpeg;base64,${imageData.imagesData}`, // Adjust the image format as needed
-              ...imageData,
-              userLabels: imageData.userLabels || [], // Initialize userLabels from Firestore
-              labellers: imageData.labellers || [] // Get labellers array (users who have labeled this image)
-            };
-          }));
 
-          // Filter out images already labeled by this user
-          const filteredImages = fetchedImages.filter(image => !image.labellers.includes(user.uid));
-
-          // Wait for all image fetching to complete
-          setImages(filteredImages);
+          const fetchedImages = imagesSnapshot.docs
+            .map((doc) => {
+              const imageData = doc.data();
+              return {
+                id: doc.id,
+                url: `data:image/jpeg;base64,${imageData.imagesData}`,
+                ...imageData,
+                userLabels: imageData.userLabels || [],
+                labellers: imageData.labellers || [], // Get labellers array
+              };
+            })
+            // Filter out images already labeled by the current user (by username)
+            .filter(image => !image.labellers.includes(username));
+  
+          setImages(fetchedImages);
         } catch (error) {
           console.error('Error fetching user data or images:', error);
         }
       }
     });
 
-    return () => unsubscribe(); // Cleanup subscription on unmount
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, [router]);
+  
 
   const handleLabelClick = (imageId, label) => {
     // Update selected label for the respective image
@@ -91,10 +93,10 @@ const Index = () => {
       // Add the selected label to the userLabels array
       userLabels.push(selectedLabels[imageId]);
 
-      // Update Firestore with the new label array and add the username to the labelers array
+      // Update Firestore with the new label array and add the username to the labellers array
       await updateDoc(doc(db, 'images', imageId), {
         userLabels: userLabels, // Store the updated array with the selected label
-        labelers: arrayUnion(username) // Add the username to the labelers array
+        labellers: arrayUnion(username) // Add the username to the labellers array
       });
 
       // Also store the labeled image information in the user's document
@@ -127,10 +129,7 @@ const Index = () => {
     } catch (error) {
       console.error('Error updating labels in Firestore:', error);
     }
-};
-
-  
-  
+  };
 
   if (!user) {
     return <div>Loading...</div>; // If user not logged in yet
