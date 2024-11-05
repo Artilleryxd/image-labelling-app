@@ -18,7 +18,6 @@ const Index = () => {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const userData = userDoc.data();
 
-        // Redirect based on user role
         if (userData.role === 'uploader') {
           router.push('/uploaderDash'); // Redirect to uploader dashboard
         } else if (userData.role === 'viewer') {

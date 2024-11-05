@@ -22,7 +22,7 @@ const Index = () => {
           const userData = userDoc.data();
 
           if (userData.role === 'viewer') {
-            router.push('/'); // Redirect viewer to home page
+            router.push('/viewerDash'); // Redirect viewer to home page
             return;
           }
 
@@ -77,14 +77,12 @@ const Index = () => {
 
       const userData = userDocSnap.data();
       const username = userData.name;
-      const currentWallet = userData.wallet.balance || 0; // Get current wallet balance
+      const currentWallet = userData.wallet.balance || 0;
 
-      // Calculate total cost
-      const uploadCost = images.length * 1; // $1 per image
-      const labelCost = labels.filter(label => label.trim() !== '').length * 0.1; // $0.10 per label
+      const uploadCost = images.length * 1; 
+      const labelCost = labels.filter(label => label.trim() !== '').length * 0.1; 
       const totalCost = uploadCost + labelCost;
 
-      // Check if user has enough funds
       if (currentWallet < totalCost) {
         setError(`You do not have enough balance. Required: $${totalCost.toFixed(2)}, Available: $${currentWallet.toFixed(2)}`);
         return;
@@ -120,7 +118,6 @@ const Index = () => {
               username: username,
             });
           } else {
-            // Create new image document
             await setDoc(imageDocRef, imageData); 
           }
 

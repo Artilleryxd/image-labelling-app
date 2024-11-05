@@ -96,7 +96,7 @@ const Index = () => {
           label: selectedLabels[imageId],
           imageData: currentImage.imagesData,
         }),
-        'wallet.balance': userData.wallet.balance + 2
+        'wallet.balance': userData.wallet.balance + 1
       });
 
       setImages((prevImages) =>

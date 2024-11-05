@@ -47,14 +47,18 @@ const UploaderNavbar = () => {
   };
 
   return (
-    <nav className="bg-blue-600 p-4 rounded-lg shadow-md">
+    <nav className="bg-blue-600 p-4 rounded-lg shadow-lg">
       <ul className="flex justify-between items-center">
         <li className="flex space-x-6">
           <Link legacyBehavior href="/uploaderDash">
-            <a className="text-white hover:text-blue-300 transition duration-200">Upload Image</a>
+            <a className="text-white hover:text-blue-300 transition duration-200 font-medium">
+              Upload Image
+            </a>
           </Link>
           <Link legacyBehavior href="/previousUploads">
-            <a className="text-white hover:text-blue-300 transition duration-200">View Uploads</a>
+            <a className="text-white hover:text-blue-300 transition duration-200 font-medium">
+              View Uploads
+            </a>
           </Link>
         </li>
         <li className="ml-auto flex items-center space-x-4 relative"
@@ -66,10 +70,10 @@ const UploaderNavbar = () => {
             <img
               src={profilePicture}
               alt="Profile Picture"
-              className="w-10 h-10 rounded-full border-2 border-white shadow-md cursor-pointer"
+              className="w-10 h-10 rounded-full border-2 border-gray-200 shadow-sm cursor-pointer hover:scale-105 transition-transform duration-200"
             />
           )}
-          <Link href="/profile" className="text-white hover:text-blue-300 transition duration-200">
+          <Link href="/profile" className="text-white hover:text-blue-300 transition duration-200 font-medium">
             {username}
           </Link>
 
@@ -79,12 +83,12 @@ const UploaderNavbar = () => {
               <div className="p-4 text-gray-700">
                 <Link legacyBehavior href="/wallet">
                   <a className="block hover:bg-gray-100 transition duration-200 p-2 rounded">
-                    Wallet <span className="font-bold">₹{wallet.balance.toFixed(2)}</span> {/* Use wallet balance */}
+                    Wallet <span className="font-bold text-gray-900">₹{wallet.balance.toFixed(2)}</span> {/* Use wallet balance */}
                   </a>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="block w-full text-left text-red-600 hover:bg-red-100 transition duration-200 p-2 rounded"
+                  className="block w-full text-left text-red-600 hover:bg-red-100 transition duration-200 p-2 rounded mt-2"
                 >
                   Logout
                 </button>
